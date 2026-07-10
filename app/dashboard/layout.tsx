@@ -19,6 +19,7 @@ export default function DashboardLayout({
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </div>
       </div>
+      {/* Chat Widget - outside the flex container to allow fixed positioning */}
       <ChatWidget />
     </AuthProvider>
   );

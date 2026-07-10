@@ -1,24 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  getDocs,
-  doc,
-  updateDoc,
-  increment,
-  Timestamp,
-} from "firebase/firestore";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useCallback } from "react";
 import { ChatMessage, ChatConversation } from "@/types/chat";
 
 // ==================== CHAT HOOK ====================
+// Works independently of Firebase - Firestore operations are optional
 
 interface UseChatReturn {
   messages: ChatMessage[];
@@ -34,23 +20,16 @@ interface UseChatReturn {
 }
 
 export function useChat(): UseChatReturn {
-  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   // Send a message
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!user || !content.trim()) return;
+      if (!content.trim()) return;
 
       setIsLoading(true);
       setError(null);
@@ -77,7 +56,7 @@ export function useChat(): UseChatReturn {
           body: JSON.stringify({
             message: content,
             conversationId: currentConversationId,
-            userId: user.uid,
+            userId: "anonymous",
           }),
         });
 
@@ -104,16 +83,13 @@ export function useChat(): UseChatReturn {
 
         setMessages((prev) => [...prev, assistantMessage]);
 
-        // Save to Firestore
-        await saveMessageToFirestore(userMessage);
-        await saveMessageToFirestore(assistantMessage);
-
-        // Update or create conversation in Firestore
-        await saveConversationToFirestore(
-          data.data.conversationId,
-          content,
-          assistantMessage.content
-        );
+        // Try to save to Firestore (optional - don't fail if Firebase isn't configured)
+        try {
+          await saveToFirestore(userMessage, assistantMessage, data.data.conversationId);
+        } catch (firestoreError) {
+          // Firestore save failed - that's okay, chat still works
+          console.log("Firestore save skipped:", firestoreError instanceof Error ? firestoreError.message : "Not configured");
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "An error occurred";
         setError(errorMessage);
@@ -121,84 +97,49 @@ export function useChat(): UseChatReturn {
         setIsLoading(false);
       }
     },
-    [user, currentConversationId]
+    [currentConversationId]
   );
 
-  // Save a message to Firestore
-  const saveMessageToFirestore = async (message: ChatMessage) => {
-    if (!user) return;
-
-    try {
-      const messagesRef = collection(db, "chatMessages");
-      await addDoc(messagesRef, {
-        ...message,
-        userId: user.uid,
-        timestamp: Timestamp.fromDate(message.timestamp),
-        createdAt: Timestamp.now(),
-      });
-    } catch (err) {
-      console.error("Error saving message to Firestore:", err);
-    }
-  };
-
-  // Save or update conversation in Firestore
-  const saveConversationToFirestore = async (
-    conversationId: string,
-    lastUserMessage: string,
-    lastAssistantMessage: string
+  // Save to Firestore (optional)
+  const saveToFirestore = async (
+    userMessage: ChatMessage,
+    assistantMessage: ChatMessage,
+    conversationId: string
   ) => {
-    if (!user) return;
+    // Dynamically import Firebase to avoid errors if not configured
+    const { db } = await import("@/lib/firebase");
+    const {
+      collection,
+      addDoc,
+      Timestamp,
+    } = await import("firebase/firestore");
 
-    try {
-      const conversationsRef = collection(db, "chatConversations");
-      const q = query(
-        conversationsRef,
-        where("id", "==", conversationId),
-        limit(1)
-      );
+    // Save user message
+    await addDoc(collection(db, "chatMessages"), {
+      ...userMessage,
+      timestamp: Timestamp.fromDate(userMessage.timestamp),
+      createdAt: Timestamp.now(),
+    });
 
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        // Create new conversation
-        await addDoc(conversationsRef, {
-          id: conversationId,
-          userId: user.uid,
-          title: lastUserMessage.slice(0, 50) + (lastUserMessage.length > 50 ? "..." : ""),
-          status: "active",
-          messageCount: 2,
-          lastMessage: lastAssistantMessage.slice(0, 100),
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
-      } else {
-        // Update existing conversation
-        const docRef = doc(db, "chatConversations", snapshot.docs[0].id);
-        await updateDoc(docRef, {
-          messageCount: increment(2),
-          lastMessage: lastAssistantMessage.slice(0, 100),
-          updatedAt: Timestamp.now(),
-        });
-      }
-    } catch (err) {
-      console.error("Error saving conversation to Firestore:", err);
-    }
+    // Save assistant message
+    await addDoc(collection(db, "chatMessages"), {
+      ...assistantMessage,
+      timestamp: Timestamp.fromDate(assistantMessage.timestamp),
+      createdAt: Timestamp.now(),
+    });
   };
 
-  // Load conversations from Firestore
+  // Load conversations (optional)
   const loadConversations = useCallback(async () => {
-    if (!user) return;
-
+    // Optional - only works if Firebase is configured
     try {
-      const conversationsRef = collection(db, "chatConversations");
-      const q = query(
-        conversationsRef,
-        where("userId", "==", user.uid),
-        orderBy("updatedAt", "desc"),
-        limit(20)
-      );
+      const { db } = await import("@/lib/firebase");
+      const { collection, query, orderBy, limit, getDocs } = await import("firebase/firestore");
 
+      const conversationsRef = collection(db, "chatConversations");
+      const q = query(conversationsRef, orderBy("updatedAt", "desc"), limit(20));
       const snapshot = await getDocs(q);
+
       const convs = snapshot.docs.map((doc) => ({
         ...doc.data(),
         createdAt: doc.data().createdAt?.toDate() || new Date(),
@@ -206,20 +147,20 @@ export function useChat(): UseChatReturn {
       })) as ChatConversation[];
 
       setConversations(convs);
-    } catch (err) {
-      console.error("Error loading conversations:", err);
+    } catch {
+      // Firebase not configured - that's okay
     }
-  }, [user]);
+  }, []);
 
-  // Load a specific conversation
+  // Load a specific conversation (optional)
   const loadConversation = useCallback(async (conversationId: string) => {
-    if (!user) return;
-
     setIsLoading(true);
     try {
       setCurrentConversationId(conversationId);
 
-      // Load messages from Firestore
+      const { db } = await import("@/lib/firebase");
+      const { collection, query, where, orderBy, getDocs } = await import("firebase/firestore");
+
       const messagesRef = collection(db, "chatMessages");
       const q = query(
         messagesRef,
@@ -234,13 +175,13 @@ export function useChat(): UseChatReturn {
       })) as ChatMessage[];
 
       setMessages(msgs);
-    } catch (err) {
-      console.error("Error loading conversation:", err);
-      setError("Failed to load conversation");
+    } catch {
+      // Firebase not configured - show empty conversation
+      setMessages([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   // Create new conversation
   const createNewConversation = useCallback(() => {

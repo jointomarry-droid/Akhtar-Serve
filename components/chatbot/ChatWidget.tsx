@@ -1,20 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { MessageList } from "./MessageList";
 import { ChatInput } from "./ChatInput";
 import { QuickReplies } from "./QuickReplies";
 import { useChat } from "@/hooks/useChat";
-import {
-  MessageCircle,
-  X,
-  Minus,
-  Bot,
-  Trash2,
-  History,
-  Settings,
-} from "lucide-react";
+import { MessageCircle, X, Minus, Bot, Trash2 } from "lucide-react";
 
 // ==================== CHAT WIDGET COMPONENT ====================
 
@@ -22,6 +13,7 @@ export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showQuickReplies, setShowQuickReplies] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const {
     messages,
     isLoading,
@@ -30,6 +22,11 @@ export function ChatWidget() {
     createNewConversation,
     clearError,
   } = useChat();
+
+  // Ensure component is mounted before rendering
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Show quick replies only when there are no messages
   useEffect(() => {
@@ -45,6 +42,11 @@ export function ChatWidget() {
     createNewConversation();
     setShowQuickReplies(true);
   };
+
+  // Don't render until mounted (prevents hydration issues)
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <>
