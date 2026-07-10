@@ -94,6 +94,11 @@ const managementItems = [
     icon: Package,
   },
   {
+    title: "Listings",
+    href: "/dashboard/listings",
+    icon: Globe,
+  },
+  {
     title: "Orders",
     href: "/dashboard/orders",
     icon: ShoppingCart,
