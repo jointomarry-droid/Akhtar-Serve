@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Target,
   Truck,
+  MessageSquare,
 } from "lucide-react";
 
 const navItems = [
@@ -35,6 +36,11 @@ const navItems = [
     title: "AI Tools & Agents",
     href: "/dashboard/ai-tools",
     icon: Bot,
+  },
+  {
+    title: "AI Chat Assistant",
+    href: "/dashboard/chat-history",
+    icon: MessageSquare,
   },
   {
     title: "AI Product Hunter",

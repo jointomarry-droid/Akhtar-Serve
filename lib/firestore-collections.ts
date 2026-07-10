@@ -37,6 +37,16 @@ export const getUserNotificationsCollection = (userId: string) =>
 export const getUserApiKeysCollection = (userId: string) =>
   collection(getUserDoc(userId), "apiKeys");
 
+// Chat collections
+export const chatConversationsCollection = collection(db, "chatConversations");
+export const chatMessagesCollection = collection(db, "chatMessages");
+
+// Helper to get chat subcollections
+export const getChatConversationDoc = (conversationId: string) =>
+  doc(chatConversationsCollection, conversationId);
+export const getChatConversationMessagesCollection = (conversationId: string) =>
+  collection(getChatConversationDoc(conversationId), "messages");
+
 // Helper to get product subcollections
 export const getProductDoc = (orgId: string, productId: string) =>
   doc(getOrgProductsCollection(orgId), productId);

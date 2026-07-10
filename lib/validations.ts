@@ -112,6 +112,14 @@ export const connectMarketplaceSchema = z.object({
   credentials: z.record(z.string()),
 });
 
+// ==================== CHAT SCHEMAS ====================
+
+export const chatSchema = z.object({
+  message: z.string().min(1, "Message is required").max(2000, "Message too long"),
+  conversationId: z.string().optional(),
+  userId: z.string().min(1, "User ID is required"),
+});
+
 // ==================== SETTINGS SCHEMAS ====================
 
 export const updateOrganizationSchema = z.object({
@@ -154,3 +162,4 @@ export type UpdateInventoryInput = z.infer<typeof updateInventorySchema>;
 export type CreateLocationInput = z.infer<typeof createLocationSchema>;
 export type CreatePricingRuleInput = z.infer<typeof createPricingRuleSchema>;
 export type ConnectMarketplaceInput = z.infer<typeof connectMarketplaceSchema>;
+export type ChatInput = z.infer<typeof chatSchema>;
