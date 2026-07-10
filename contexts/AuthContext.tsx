@@ -49,6 +49,33 @@ interface UserData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ==================== HELPERS ====================
+
+// Set or clear session cookie for middleware
+function setSessionCookie(user: User | null) {
+  if (user) {
+    // Set a session cookie that expires in 7 days
+    document.cookie = `firebase-session=${user.uid}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  } else {
+    // Clear the session cookie
+    document.cookie = "firebase-session=; path=/; max-age=0";
+  }
+}
+
+// Also store user in localStorage for client-side checks
+function setLocalStorage(user: User | null) {
+  if (user) {
+    localStorage.setItem("user", JSON.stringify({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    }));
+  } else {
+    localStorage.removeItem("user");
+  }
+}
+
 // ==================== PROVIDER ====================
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -98,6 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
 
       if (user) {
+        // Set session cookie for middleware
+        setSessionCookie(user);
+        setLocalStorage(user);
+
         // Fetch or create user data
         let data = await fetchUserData(user.uid);
         if (!data) {
@@ -105,6 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUserData(data);
       } else {
+        setSessionCookie(null);
+        setLocalStorage(null);
         setUserData(null);
       }
 
@@ -150,6 +183,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sign out
   const signOut = async () => {
     await firebaseSignOut(auth);
+    setSessionCookie(null);
+    setLocalStorage(null);
     setUser(null);
     setUserData(null);
   };

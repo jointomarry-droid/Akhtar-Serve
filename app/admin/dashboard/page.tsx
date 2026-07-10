@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,119 +24,182 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const stats = [
-  {
-    title: "Total Users",
-    value: "1,234",
-    change: "+12%",
-    trend: "up",
-    icon: Users,
-    color: "text-blue-600",
-    bg: "bg-blue-100",
-  },
-  {
-    title: "Active Products",
-    value: "5,678",
-    change: "+8%",
-    trend: "up",
-    icon: Package,
-    color: "text-green-600",
-    bg: "bg-green-100",
-  },
-  {
-    title: "Total Orders",
-    value: "8,901",
-    change: "+23%",
-    trend: "up",
-    icon: ShoppingCart,
-    color: "text-purple-600",
-    bg: "bg-purple-100",
-  },
-  {
-    title: "Revenue",
-    value: "$45,678",
-    change: "+15%",
-    trend: "up",
-    icon: DollarSign,
-    color: "text-yellow-600",
-    bg: "bg-yellow-100",
-  },
-];
+interface DashboardStats {
+  totalUsers: number;
+  totalProducts: number;
+  totalOrders: number;
+  totalRevenue: number;
+  recentUsers: any[];
+  recentOrders: any[];
+  marketplaceStats: {
+    amazon: { orders: number; revenue: number };
+    ebay: { orders: number; revenue: number };
+  };
+}
 
-const recentUsers = [
-  { id: "1", name: "Shoaib Akhtar", email: "fiaz.ahmad1427@gmail.com", status: "active", joined: "Just now", role: "Owner" },
-  { id: "2", name: "John Smith", email: "john@example.com", status: "active", joined: "2 hours ago", role: "Admin" },
-  { id: "3", name: "Sarah Johnson", email: "sarah@example.com", status: "active", joined: "5 hours ago", role: "Manager" },
-  { id: "4", name: "Mike Wilson", email: "mike@example.com", status: "pending", joined: "1 day ago", role: "Member" },
-  { id: "5", name: "Emily Davis", email: "emily@example.com", status: "active", joined: "2 days ago", role: "Member" },
-];
+export default function AdminDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalProducts: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    recentUsers: [],
+    recentOrders: [],
+    marketplaceStats: {
+      amazon: { orders: 0, revenue: 0 },
+      ebay: { orders: 0, revenue: 0 },
+    },
+  });
+  const [loading, setLoading] = useState(true);
 
-const recentOrders = [
-  { id: "AMZ-1001", customer: "John Smith", total: 89.97, marketplace: "amazon", status: "shipped", time: "2h ago" },
-  { id: "EBY-2001", customer: "Sarah Johnson", total: 24.99, marketplace: "ebay", status: "delivered", time: "5h ago" },
-  { id: "AMZ-1002", customer: "Mike Wilson", total: 149.95, marketplace: "amazon", status: "processing", time: "1d ago" },
-  { id: "EBY-2002", customer: "Emily Davis", total: 59.98, marketplace: "ebay", status: "pending", time: "2d ago" },
-];
+  useEffect(() => {
+    // Fetch real data from API
+    const fetchDashboardData = async () => {
+      try {
+        const [productsRes, ordersRes] = await Promise.all([
+          fetch("/api/products"),
+          fetch("/api/orders"),
+        ]);
 
-const activityFeed = [
-  { time: "2 min ago", action: "New user registered", user: "Chris Brown", icon: Users, color: "text-blue-600" },
-  { time: "15 min ago", action: "Order #AMZ-1001 shipped", user: "John Smith", icon: ShoppingCart, color: "text-green-600" },
-  { time: "1 hour ago", action: "Product stock alert", user: "LED Desk Lamp", icon: AlertTriangle, color: "text-yellow-600" },
-  { time: "2 hours ago", action: "New review received", user: "5 stars from Sarah", icon: TrendingUp, color: "text-purple-600" },
-  { time: "3 hours ago", action: "Payment received", user: "$149.95 from Mike", icon: CreditCard, color: "text-green-600" },
-  { time: "5 hours ago", action: "Integration connected", user: "eBay store linked", icon: Globe, color: "text-orange-600" },
-];
+        const productsData = await productsRes.json();
+        const ordersData = await ordersRes.json();
 
-const marketplaceStats = [
-  { name: "Amazon", orders: 5420, revenue: 28500, growth: "+18%", color: "#FF9900" },
-  { name: "eBay", orders: 3481, revenue: 17178, growth: "+25%", color: "#E53238" },
-];
+        // Calculate stats from real data
+        const totalProducts = productsData.total || 0;
+        const totalOrders = ordersData.total || 0;
+        const totalRevenue = ordersData.stats?.totalRevenue || 0;
 
-export default function AdminDashboardPage() {
+        // Marketplace breakdown
+        const amazonOrders = ordersData.orders?.filter(
+          (o: any) => o.marketplace === "amazon"
+        ).length || 0;
+        const ebayOrders = ordersData.orders?.filter(
+          (o: any) => o.marketplace === "ebay"
+        ).length || 0;
+
+        const amazonRevenue = ordersData.orders
+          ?.filter((o: any) => o.marketplace === "amazon")
+          .reduce((sum: number, o: any) => sum + o.total, 0) || 0;
+        const ebayRevenue = ordersData.orders
+          ?.filter((o: any) => o.marketplace === "ebay")
+          .reduce((sum: number, o: any) => sum + o.total, 0) || 0;
+
+        setStats({
+          totalUsers: 24, // Mock for now - would need users API
+          totalProducts,
+          totalOrders,
+          totalRevenue,
+          recentUsers: [], // Would come from users API
+          recentOrders: ordersData.orders?.slice(0, 5) || [],
+          marketplaceStats: {
+            amazon: { orders: amazonOrders, revenue: amazonRevenue },
+            ebay: { orders: ebayOrders, revenue: ebayRevenue },
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const statCards = [
+    {
+      title: "Total Users",
+      value: stats.totalUsers.toLocaleString(),
+      change: "+12%",
+      trend: "up",
+      icon: Users,
+      color: "text-blue-600",
+      bg: "bg-blue-100",
+    },
+    {
+      title: "Active Products",
+      value: stats.totalProducts.toLocaleString(),
+      change: "+8%",
+      trend: "up",
+      icon: Package,
+      color: "text-green-600",
+      bg: "bg-green-100",
+    },
+    {
+      title: "Total Orders",
+      value: stats.totalOrders.toLocaleString(),
+      change: "+23%",
+      trend: "up",
+      icon: ShoppingCart,
+      color: "text-purple-600",
+      bg: "bg-purple-100",
+    },
+    {
+      title: "Total Revenue",
+      value: `$${stats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: "+18%",
+      trend: "up",
+      icon: DollarSign,
+      color: "text-orange-600",
+      bg: "bg-orange-100",
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-primary to-primary/80 p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">Welcome back, Admin!</h1>
-            <p className="text-white/80">Here&apos;s what&apos;s happening with your platform today.</p>
-          </div>
-          <div className="flex gap-2">
-            <Link href="/admin/users">
-              <Button variant="secondary" className="gap-2">
-                <Users className="h-4 w-4" />Manage Users
-              </Button>
-            </Link>
-            <Link href="/admin/products">
-              <Button variant="secondary" className="gap-2">
-                <Package className="h-4 w-4" />Products
-              </Button>
-            </Link>
-          </div>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
+        <h1 className="text-2xl font-bold">Welcome back, Admin!</h1>
+        <p className="text-blue-100 mt-1">
+          Here&apos;s what&apos;s happening with your platform today.
+        </p>
+        <div className="flex gap-3 mt-4">
+          <Link href="/admin/users">
+            <Button className="bg-white text-blue-600 hover:bg-blue-50">
+              <Users className="w-4 h-4 mr-2" />
+              Manage Users
+            </Button>
+          </Link>
+          <Link href="/admin/products">
+            <Button className="bg-blue-500 hover:bg-blue-400 border border-blue-400">
+              <Package className="w-4 h-4 mr-2" />
+              View Products
+            </Button>
+          </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="transition-all hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.bg}`}>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
-              <div className="flex items-center gap-1 mt-1">
-                {stat.trend === "up" ? (
-                  <ArrowUpRight className="h-4 w-4 text-green-600" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4 text-red-600" />
-                )}
-                <span className={`text-sm ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>{stat.change}</span>
-                <span className="text-sm text-muted-foreground">from last month</span>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((stat) => (
+          <Card key={stat.title}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className={`text-xs mt-1 ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
+                    {stat.trend === "up" ? (
+                      <ArrowUpRight className="inline w-3 h-3 mr-1" />
+                    ) : (
+                      <ArrowDownRight className="inline w-3 h-3 mr-1" />
+                    )}
+                    {stat.change} from last month
+                  </p>
+                </div>
+                <div className={`p-3 rounded-full ${stat.bg}`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -143,136 +207,108 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Marketplace Performance */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {marketplaceStats.map((mp) => (
-          <Card key={mp.name}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg text-white font-bold text-sm" style={{ backgroundColor: mp.color }}>
-                    {mp.name.charAt(0)}
-                  </div>
-                  {mp.name}
-                </CardTitle>
-                <Badge variant="outline">{mp.growth}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Orders</p>
-                  <p className="text-2xl font-bold">{mp.orders.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-2xl font-bold">${mp.revenue.toLocaleString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Users */}
-        <Card className="lg:col-span-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Users</CardTitle>
-              <Link href="/admin/users">
-                <Button variant="ghost" size="sm" className="gap-1">
-                  View All <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Latest user registrations</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Marketplace Performance
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between rounded-lg border p-3 transition hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                      {user.name.split(" ").map((n) => n[0]).join("")}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant={user.status === "active" ? "default" : "secondary"} className="text-xs">
-                      {user.status}
-                    </Badge>
-                  </div>
+          <CardContent className="space-y-4">
+            {/* Amazon */}
+            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">A</span>
                 </div>
-              ))}
+                <div>
+                  <p className="font-medium">Amazon</p>
+                  <p className="text-sm text-muted-foreground">
+                    {stats.marketplaceStats.amazon.orders} orders
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-orange-600">
+                  ${stats.marketplaceStats.amazon.revenue.toFixed(2)}
+                </p>
+                <Badge className="bg-orange-100 text-orange-800">Active</Badge>
+              </div>
+            </div>
+
+            {/* eBay */}
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">E</span>
+                </div>
+                <div>
+                  <p className="font-medium">eBay</p>
+                  <p className="text-sm text-muted-foreground">
+                    {stats.marketplaceStats.ebay.orders} orders
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-red-600">
+                  ${stats.marketplaceStats.ebay.revenue.toFixed(2)}
+                </p>
+                <Badge className="bg-red-100 text-red-800">Active</Badge>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Recent Orders */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Orders</CardTitle>
-              <Link href="/admin/orders">
-                <Button variant="ghost" size="sm" className="gap-1">
-                  View All <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <CardDescription>Latest marketplace orders</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between rounded-lg border p-3 transition hover:bg-muted/50">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg text-white font-bold text-xs ${order.marketplace === "amazon" ? "bg-[#FF9900]" : "bg-[#E53238]"}`}>
-                      {order.marketplace === "amazon" ? "A" : "E"}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{order.id}</p>
-                      <p className="text-xs text-muted-foreground">{order.customer}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">${order.total}</p>
-                    <Badge variant={order.status === "delivered" ? "default" : order.status === "cancelled" ? "destructive" : "secondary"} className="text-xs">
-                      {order.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Activity Feed */}
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Activity Feed
+              <ShoppingCart className="w-5 h-5" />
+              Recent Orders
             </CardTitle>
-            <CardDescription>Recent platform activity</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {activityFeed.map((activity, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-lg border p-3 transition hover:bg-muted/50">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg bg-muted ${activity.color}`}>
-                    <activity.icon className="h-4 w-4" />
+              {stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order: any) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium">{order.id}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {order.customerName}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">${order.total.toFixed(2)}</p>
+                      <Badge
+                        className={
+                          order.status === "shipped"
+                            ? "bg-blue-100 text-blue-800"
+                            : order.status === "delivered"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }
+                      >
+                        {order.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.user}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{activity.time}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  No orders yet
+                </p>
+              )}
             </div>
+            <Link href="/admin/orders">
+              <Button variant="outline" className="w-full mt-4">
+                View All Orders
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -281,62 +317,31 @@ export default function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/admin/users">
-              <Button variant="outline" className="w-full justify-start gap-2 h-auto py-4">
-                <Users className="h-5 w-5 text-blue-600" />
-                <div className="text-left">
-                  <p className="font-medium">Users</p>
-                  <p className="text-xs text-muted-foreground">1,234 total</p>
-                </div>
+              <Button variant="outline" className="w-full h-20 flex flex-col">
+                <Users className="w-6 h-6 mb-2" />
+                <span>Manage Users</span>
               </Button>
             </Link>
             <Link href="/admin/products">
-              <Button variant="outline" className="w-full justify-start gap-2 h-auto py-4">
-                <Package className="h-5 w-5 text-green-600" />
-                <div className="text-left">
-                  <p className="font-medium">Products</p>
-                  <p className="text-xs text-muted-foreground">5,678 active</p>
-                </div>
+              <Button variant="outline" className="w-full h-20 flex flex-col">
+                <Package className="w-6 h-6 mb-2" />
+                <span>View Products</span>
               </Button>
             </Link>
             <Link href="/admin/orders">
-              <Button variant="outline" className="w-full justify-start gap-2 h-auto py-4">
-                <ShoppingCart className="h-5 w-5 text-purple-600" />
-                <div className="text-left">
-                  <p className="font-medium">Orders</p>
-                  <p className="text-xs text-muted-foreground">8,901 total</p>
-                </div>
-              </Button>
-            </Link>
-            <Link href="/dashboard/analytics">
-              <Button variant="outline" className="w-full justify-start gap-2 h-auto py-4">
-                <BarChart3 className="h-5 w-5 text-orange-600" />
-                <div className="text-left">
-                  <p className="font-medium">Analytics</p>
-                  <p className="text-xs text-muted-foreground">View reports</p>
-                </div>
+              <Button variant="outline" className="w-full h-20 flex flex-col">
+                <ShoppingCart className="w-6 h-6 mb-2" />
+                <span>Process Orders</span>
               </Button>
             </Link>
             <Link href="/admin/settings">
-              <Button variant="outline" className="w-full justify-start gap-2 h-auto py-4">
-                <Settings className="h-5 w-5 text-gray-600" />
-                <div className="text-left">
-                  <p className="font-medium">Settings</p>
-                  <p className="text-xs text-muted-foreground">Configure</p>
-                </div>
-              </Button>
-            </Link>
-            <Link href="/dashboard/support">
-              <Button variant="outline" className="w-full justify-start gap-2 h-auto py-4">
-                <Zap className="h-5 w-5 text-yellow-600" />
-                <div className="text-left">
-                  <p className="font-medium">Support</p>
-                  <p className="text-xs text-muted-foreground">12 tickets</p>
-                </div>
+              <Button variant="outline" className="w-full h-20 flex flex-col">
+                <Settings className="w-6 h-6 mb-2" />
+                <span>Settings</span>
               </Button>
             </Link>
           </div>
