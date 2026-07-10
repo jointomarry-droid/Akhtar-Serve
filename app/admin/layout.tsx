@@ -1,29 +1,63 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { LogOut, Home, ChevronRight } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingCart,
+  Settings,
+  BarChart3,
+} from "lucide-react";
 
 function checkAdminAuth(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem("admin_auth") === "true";
 }
 
+const PUBLIC_ADMIN_ROUTES = ["/admin"];
+
+function isPublicPath(pathname: string): boolean {
+  const normalized = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return PUBLIC_ADMIN_ROUTES.includes(normalized);
+}
+
+const adminNav = [
+  { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { title: "Users", href: "/admin/users", icon: Users },
+  { title: "Products", href: "/admin/products", icon: Package },
+  { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { title: "Settings", href: "/admin/settings", icon: Settings },
+];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  const isPublicRoute = isPublicPath(pathname);
 
   useEffect(() => {
-    setMounted(true);
-    if (!checkAdminAuth()) {
+    // Public routes don't need auth check
+    if (isPublicRoute) {
+      setIsAuthenticated(true);
+      return;
+    }
+
+    // Check auth for protected routes
+    const authed = checkAdminAuth();
+    if (!authed) {
+      // Not authenticated — redirect to login
       router.replace("/admin");
     } else {
       setIsAuthenticated(true);
     }
-  }, [router]);
+  }, [router, isPublicRoute]);
 
   const handleLogout = () => {
     localStorage.removeItem("admin_auth");
@@ -32,7 +66,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push("/admin");
   };
 
-  if (!mounted || !isAuthenticated) return null;
+  // Still checking auth — show nothing to prevent flash
+  if (isAuthenticated === null) {
+    return null;
+  }
+
+  // Public routes (login page) — render children without admin chrome
+  if (isPublicRoute) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,22 +143,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
-
-import {
-  LayoutDashboard,
-  Users,
-  Package,
-  ShoppingCart,
-  Settings,
-  BarChart3,
-  Shield,
-} from "lucide-react";
-
-const adminNav = [
-  { title: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { title: "Users", href: "/admin/users", icon: Users },
-  { title: "Products", href: "/admin/products", icon: Package },
-  { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { title: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { title: "Settings", href: "/admin/settings", icon: Settings },
-];

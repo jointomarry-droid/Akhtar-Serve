@@ -20,19 +20,24 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
 
+    // Simulate auth delay
     await new Promise((r) => setTimeout(r, 500));
 
-    if (username === "admin" && password === "admin123") {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("admin_auth", "true");
-        localStorage.setItem("admin_user", username);
-        document.cookie = "admin_auth=true; path=/; max-age=86400";
-      }
-      router.push("/admin/dashboard");
+    const trimmedUser = username.trim();
+    const trimmedPass = password.trim();
+
+    if (trimmedUser === "admin" && trimmedPass === "admin123") {
+      // Set auth in localStorage and cookie before navigation
+      localStorage.setItem("admin_auth", "true");
+      localStorage.setItem("admin_user", trimmedUser);
+      document.cookie = "admin_auth=true; path=/; max-age=86400";
+
+      // Use window.location for a full page reload to ensure auth state is picked up
+      window.location.href = "/admin/dashboard";
     } else {
-      setError("Invalid credentials. Use admin / admin123");
+      setError("Invalid credentials. Please try again.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -57,9 +62,11 @@ export default function AdminLoginPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="admin"
+                placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
+                disabled={loading}
                 required
               />
             </div>
@@ -68,9 +75,11 @@ export default function AdminLoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="admin123"
+                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                disabled={loading}
                 required
               />
             </div>

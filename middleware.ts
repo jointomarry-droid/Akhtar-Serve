@@ -44,14 +44,19 @@ export async function middleware(request: NextRequest) {
 
   // Check for Firebase session cookie
   const session = request.cookies.get('firebase-session');
+  
+  // Check for admin auth cookie
+  const adminSession = request.cookies.get('admin_auth');
 
   // For admin routes, check for admin session
   if (adminRoutes.some(route => pathname.startsWith(route))) {
-    if (!session) {
-      // Allow access to admin login page
-      if (pathname === '/admin') {
-        return NextResponse.next();
-      }
+    // Allow access to admin login page without auth
+    if (pathname === '/admin') {
+      return NextResponse.next();
+    }
+    
+    // Check for either Firebase session or admin auth cookie
+    if (!session && !adminSession) {
       // Redirect to admin login
       return NextResponse.redirect(new URL('/admin', request.url));
     }
