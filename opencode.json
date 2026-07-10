@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "akhtar-serve",
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "references": {
+    "prd": {
+      "path": "./PRD.MD",
+      "description": "Product Requirements Document for Akhtar-Serve"
+    },
+    "akhtarserve": {
+      "path": "./AKHTARSERVE.MD",
+      "description": "Akhtar-Serve project overview and specifications"
+    },
+    "firebase": {
+      "path": "./firebase.md",
+      "description": "Firebase integration guide and documentation"
+    }
+  },
+  "agent": {
+    "akhtar-serve": {
+      "description": "Full-stack developer for Akhtar-Serve Amazon & eBay service provider platform",
+      "mode": "primary",
+      "permission": {
+        "edit": "allow",
+        "bash": { "npm *": "allow", "npx *": "allow", "git *": "allow", "firebase *": "allow", "*": "ask" }
+      }
+    }
+  },
+  "mcp": {
+    "firebase": {
+      "type": "local",
+      "command": ["npx", "firebase-mcp-server"],
+      "enabled": false,
+      "env": {
+        "FIREBASE_PROJECT_ID": "akhtarserve"
+      }
+    }
+  }
+}
