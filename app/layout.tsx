@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { ChatProvider } from "@/components/ChatProvider";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -83,14 +84,15 @@ export default function RootLayout({
         <meta name="theme-color" content="#0f172a" />
       </head>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <ChatProvider />
+          </ThemeProvider>
       </body>
     </html>
   );
