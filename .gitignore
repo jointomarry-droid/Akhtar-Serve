@@ -47,3 +47,5 @@ emulator-data/
 # firebase service account
 *-service-account.json
 service-account.json
+
+.vercel
