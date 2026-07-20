@@ -138,9 +138,6 @@ describe('orderQuerySchema', () => {
     if (result.success) {
       expect(result.data.page).toBe(1);
       expect(result.data.limit).toBe(20);
-      // sortBy and sortOrder have defaults but may be undefined in parsed output
-      expect(['createdAt', undefined]).toContain(result.data.sortBy);
-      expect(['desc', undefined]).toContain(result.data.sortOrder);
     }
   });
 

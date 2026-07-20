@@ -48,4 +48,18 @@ emulator-data/
 *-service-account.json
 service-account.json
 
+# PocketBase
+pb/data/
+pb/pb_data/
+pb/pocketbase.exe
+pb/pocketbase_*.exe.bak
+pb/pocketbase_*.zip
+pb/backups/
+pb/CHANGELOG.md
+pb/LICENSE.md
+pb_migrations/
+pocketbase
+*.zip
+*.bak
+
 .vercel

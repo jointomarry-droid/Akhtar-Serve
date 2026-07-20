@@ -104,6 +104,45 @@ export const knowledgeBase: KnowledgeEntry[] = [
 
   // ==================== PRICING ====================
   {
+    id: "pricing_0",
+    category: "pricing",
+    keywords: ["amazon full account handling price", "amazon account handling cost", "amazon managed service price", "amazon full service price"],
+    question: "Amazon full account handling pricing",
+    answer:
+      "**Amazon Full Account Handling:**\n\n**Akhtar-Serve Managed Amazon Services:**\n\n• **Starter Package:** $499/mo - Up to 100 SKUs, basic management\n• **Growth Package:** $999/mo - Up to 500 SKUs, full optimization\n• **Enterprise Package:** $1,999/mo - Unlimited SKUs, dedicated account manager\n\n**Includes:**\n• Product listing & optimization\n• Inventory management\n• Order processing\n• PPC advertising management\n• Customer support handling\n• Monthly analytics reports\n\nContact sales@akhtarserve.com for custom pricing.",
+    followUp: [
+      "What's included in the Growth package?",
+      "How do I get started with managed services?",
+      "What are the eBay managed service prices?",
+    ],
+  },
+  {
+    id: "pricing_1b",
+    category: "pricing",
+    keywords: ["ebay full account handling price", "ebay account handling cost", "ebay managed service price", "ebay full service price"],
+    question: "eBay full account handling pricing",
+    answer:
+      "**eBay Full Account Handling:**\n\n**Akhtar-Serve Managed eBay Services:**\n\n• **Starter Package:** $399/mo - Up to 100 listings\n• **Growth Package:** $799/mo - Up to 500 listings\n• **Enterprise Package:** $1,499/mo - Unlimited listings\n\n**Includes:**\n• Listing creation & optimization\n• Inventory sync\n• Order management\n• Promoted Listings management\n• Customer communication\n• Performance reporting\n\nContact sales@akhtarserve.com for custom pricing.",
+    followUp: [
+      "What's included in the Growth package?",
+      "How do I get started with managed services?",
+      "What are the Amazon managed service prices?",
+    ],
+  },
+  {
+    id: "pricing_1c",
+    category: "pricing",
+    keywords: ["how much does it cost", "what is the price", "pricing information", "what are the rates", "service pricing"],
+    question: "Service pricing information",
+    answer:
+      "**Akhtar-Serve Pricing:**\n\n**Platform Plans:**\n• **Free Plan:** 50 listings, basic features\n• **Starter:** $29/mo - 500 listings\n• **Professional:** $79/mo - Unlimited listings\n• **Enterprise:** Custom pricing\n\n**Managed Services:**\n• **Amazon:** Starting at $499/mo\n• **eBay:** Starting at $399/mo\n\nView full pricing: Dashboard → Billing",
+    followUp: [
+      "What's included in the Professional plan?",
+      "How much does Amazon account management cost?",
+      "How do I upgrade my plan?",
+    ],
+  },
+  {
     id: "pricing_1",
     category: "pricing",
     keywords: ["pricing strategy", "price optimization", "competitive pricing", "dynamic pricing"],
@@ -198,6 +237,9 @@ export function searchKnowledge(
   const normalizedQuery = query.toLowerCase();
   const words = normalizedQuery.split(/\s+/).filter((w) => w.length > 2);
 
+  // Detect pricing intent
+  const hasPricingIntent = /\b(how\s+much|price|cost|fee|charge|rate|subscription|plan)\b/i.test(normalizedQuery);
+
   let filteredEntries = knowledgeBase;
 
   // Filter by category if specified
@@ -211,6 +253,11 @@ export function searchKnowledge(
   const scoredEntries = filteredEntries.map((entry) => {
     let score = 0;
 
+    // Boost pricing entries when pricing intent is detected
+    if (hasPricingIntent && entry.category === "pricing") {
+      score += 10;
+    }
+
     // Check keyword matches
     for (const keyword of entry.keywords) {
       const keywordLower = keyword.toLowerCase();
@@ -219,9 +266,9 @@ export function searchKnowledge(
           score += 3;
         }
       }
-      // Exact phrase match
+      // Exact phrase match (highest score)
       if (normalizedQuery.includes(keywordLower)) {
-        score += 5;
+        score += 10;
       }
     }
 

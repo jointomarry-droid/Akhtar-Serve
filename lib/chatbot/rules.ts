@@ -162,6 +162,7 @@ export function classifyTopic(input: string): ChatCategory {
       patterns: [
         /\b(price|pricing|cost|margin|margins|profit|discount|discounts|promotion)\b/i,
         /\b(pricing\s+strategy|competitive\s+pricing|dynamic\s+pricing|price\s+optimization)\b/i,
+        /\b(how\s+much|charge|fee|fees|rate|rates|subscription|plan)\b/i,
       ],
     },
     {
@@ -208,8 +209,8 @@ export function classifyTopic(input: string): ChatCategory {
     {
       category: "account",
       patterns: [
-        /\b(account|profile|settings|password|email|login|signup|register)\b/i,
-        /\b(team|members|roles|permissions|access)\b/i,
+        /\b(update\s+profile|change\s+password|enable\s+2fa|manage\s+notifications|account\s+settings|user\s+settings)\b/i,
+        /\b(team|members|roles|permissions|invite\s+member)\b/i,
       ],
     },
     {
